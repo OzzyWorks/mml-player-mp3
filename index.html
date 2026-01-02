@@ -2,30 +2,109 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MML Player & MP3 Exporter</title>
-    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: sans-serif; background: #f0f0f0; display: flex; justify-content: center; padding: 20px; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); width: 100%; max-width: 500px; }
+        textarea { width: 100%; height: 200px; font-family: monospace; margin-bottom: 10px; box-sizing: border-box; }
+        .btns { display: flex; gap: 10px; }
+        button { flex: 1; padding: 10px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        #status { margin-top: 10px; font-size: 0.9em; color: #666; }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <h1>MML Player & MP3 Exporter</h1>
-        <textarea id="mmlInput" placeholder="ここにMMLコードを入力してください...
-例:
-@t120
-A l8 o5 cdefgabc
-B l8 o4 gfedcb<a>c
-C l8 o3 ccccdddd" rows="15" cols="60"></textarea>
-        <div class="controls">
-            <button id="playBtn">再生</button>
-            <button id="stopBtn">停止</button>
-            <button id="exportBtn">MP3に保存</button>
-        </div>
-        <p id="statusMessage"></p>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/flmml@1.0.0/dist/FlMML.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
-    
-    <script src="script.js"></script>
+<div class="card">
+    <h2>MML Player (ドラクエ風)</h2>
+    <textarea id="mml">
+; ドラクエ風イントロ
+T150
+O5 L16
+D# E D# C D D# F F# G G# A A# B > C < B A# A G# G F# F
+    </textarea>
+    <div class="btns">
+        <button id="playBtn">再生</button>
+        <button id="stopBtn">停止</button>
+        <button id="saveBtn">MP3保存</button>
+    </div>
+    <div id="status">準備完了</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+
+<script>
+let audioCtx;
+let oscillator;
+
+// シンプルなMML解析エンジン（自作）
+function playMML(mmlText) {
+    if (audioCtx) audioCtx.close();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const status = document.getElementById('status');
+    status.textContent = "再生中...";
+
+    const notes = mmlText.toUpperCase().replace(/\s+/g, '');
+    let time = audioCtx.currentTime;
+    let tempo = 120;
+    let length = 4;
+    let octave = 5;
+
+    // 簡易的な音階周波数マップ
+    const freqMap = { 'C': -9, 'C#': -8, 'D': -7, 'D#': -6, 'E': -5, 'F': -4, 'F#': -3, 'G': -2, 'G#': -1, 'A': 0, 'A#': 1, 'B': 2 };
+
+    for (let i = 0; i < notes.length; i++) {
+        let char = notes[i];
+        if (char === 'T') {
+            let res = notes.substring(i+1).match(/^\d+/);
+            if (res) { tempo = parseInt(res[0]); i += res[0].length; }
+        } else if (char === 'O') {
+            octave = parseInt(notes[++i]);
+        } else if (char === 'L') {
+            let res = notes.substring(i+1).match(/^\d+/);
+            if (res) { length = parseInt(res[0]); i += res[0].length; }
+        } else if (freqMap[char] !== undefined) {
+            let noteName = char;
+            if (notes[i+1] === '#') { noteName += '#'; i++; }
+            
+            const freq = 440 * Math.pow(2, (freqMap[noteName] + (octave - 4) * 12) / 12);
+            const duration = (60 / tempo) * (4 / length);
+
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.type = 'square'; // ファミコン風の矩形波
+            osc.frequency.setValueAtTime(freq, time);
+            
+            gain.gain.setValueAtTime(0.1, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration - 0.05);
+
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            osc.start(time);
+            osc.stop(time + duration);
+            time += duration;
+        } else if (char === '>') { octave++; }
+        else if (char === '<') { octave--; }
+    }
+}
+
+document.getElementById('playBtn').onclick = () => {
+    const mml = document.getElementById('mml').value;
+    playMML(mml);
+};
+
+document.getElementById('stopBtn').onclick = () => {
+    if (audioCtx) audioCtx.close();
+    document.getElementById('status').textContent = "停止しました";
+};
+
+// MP3保存機能 (録音式)
+document.getElementById('saveBtn').onclick = () => {
+    alert("MP3保存機能：現在、簡易版のため再生と同時に録音する仕組みが必要です。本格的な実装にはOfflineAudioContextを使用します。まずは再生をお試しください！");
+};
+</script>
+
 </body>
 </html>
