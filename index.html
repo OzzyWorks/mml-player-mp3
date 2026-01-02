@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MML Player & MP3 Exporter</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>MML Player & MP3 Exporter</h1>
+        <textarea id="mmlInput" placeholder="ここにMMLコードを入力してください...
+例:
+@t120
+A l8 o5 cdefgabc
+B l8 o4 gfedcb<a>c
+C l8 o3 ccccdddd" rows="15" cols="60"></textarea>
+        <div class="controls">
+            <button id="playBtn">再生</button>
+            <button id="stopBtn">停止</button>
+            <button id="exportBtn">MP3に保存</button>
+        </div>
+        <p id="statusMessage"></p>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/flmml@1.0.0/dist/FlMML.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.0/lame.min.js"></script>
+    
+    <script src="script.js"></script>
+</body>
+</html>
